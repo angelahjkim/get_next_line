@@ -1,0 +1,79 @@
+get_next_line_LOGIC
+
+purpose: write a function that returns a line read from a file descriptor
+
+tools:
+	read (system call) to read from a file descriptor
+	malloc (function) to allocate memory
+	free (function) to free memory
+	libft (functions) memory and string manipulation
+
+structure:
+	int		get_next_line(const int fd, char **line)
+
+parameters:
+	int fd, which refers to the file descriptor used to read from.
+	char **line, which is the address of a pointer to a character that will be used to save 	the line read from the file descriptor.
+
+return:
+	1	if the line has been read.
+	0	if the reading is completed
+	-1	if an error has occured
+
+* the lines read from the file descriptor must be returned without '\n'
+
+-------------------------------------
+
+EXAMPLE:
+
+file.txt
+	"aaaa
+	bbb
+	cccccc"
+
+	"aaaa\nbb\ncccccc\n"
+
+*line[0] = "aaaa"
+
+with each call of get_next_line, the function should read the next line in the file
+
+--------------------------------------
+
+break the problem down into its simplest steps:
+
+1) determine the file descriptor being read from and store value in an int fd
+
+	types of file descriptors:
+		default open files: (file number: 0) stdin, (1) stdout, (2) stderr
+		text file
+		redirection...
+
+2) declare and initialize the character array which will store the line
+
+3) declare and allocate size to a buffer (character array which will temporarily store
+	characters as file is being read)
+
+4) read BUFF_SIZE bytes from fd to buffer
+
+5) use str to catch each line in the buffer string (line delimited by '\n')
+	a) when a line is stored in str, allocate size for it in the string array *line[i]
+		i) store the line in the string array line, ending the string with '\0'
+	b) repeat until all lines from the buffer string have been stored in a character array pointed to by *line[i].
+	c) if there are leftover characters that do not end with '\n'....
+		?
+
+6) continue to read from fd to buffer and repeat (5) until EOF is reached.
+
+
+things that are unclear:
+	how to know when EOF is reached ?
+	how to store substrings in str from buffer delimited by '\n' or a partial substring?
+	how and when the pointers to the character arrays are allocated?
+
+
+--------------------------------------
+
+RESOURCES:
+
+File descriptors:
+	https://www.bottomupcs.com/file_descriptors.xhtml
