@@ -6,7 +6,7 @@
 /*   By: angkim <angkim@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2019/03/16 16:11:00 by angkim            #+#    #+#             */
-/*   Updated: 2019/03/20 14:48:26 by angkim           ###   ########.fr       */
+/*   Updated: 2019/03/20 23:17:36 by angkim           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,17 +22,6 @@
 
 #include "get_next_line.h"
 
-static char *gnl_strchr(char *s, char c)
-{
-	while (*s)
-	{
-		if (*s == c)
-			return (s);
-		s++;
-	}
-	return (s);
-}
-
 static int  line_len(char *s, char c)
 {
     int len;
@@ -46,7 +35,7 @@ static int  line_len(char *s, char c)
     return (len);
 }
 
-char	*gnl_strdup(char *s1)
+void	*gnl_strdup(char *s1)
 {
 	char	*s1_copy;
 
@@ -55,54 +44,68 @@ char	*gnl_strdup(char *s1)
 	return (ft_strncpy(s1_copy, s1, line_len(s1, '\n')));
 }
 
+char	*gnl_strncat(char *dst, char *src, int n)
+{
+	int		i;
+	int		j;
+	char	*str;
+
+	str = (char *)malloc(sizeof(char) * (ft_strlen(dst) + n + 1));
+	i = ft_strlen(src);
+	j = 0;
+	while (j < n && src[j])
+	{
+		dst[i] = src[j];
+		i++;
+		j++;
+	}
+	dst[i] = '\0';
+	return (dst);
+}
+
+void    get_line(char **line, char *buffer, char *rem)
+{
+     if (!line)
+     {
+        *line = gnl_strdup(buffer);
+        printf("line: %s\n", *line);
+     }
+    else
+    {
+        *line = gnl_strncat(*line, buffer, BUFF_SIZE);
+        printf("line strncat: %s\n", *line);
+    }
+}
+
 int     get_next_line(int fd, char **line)
 {
     char *buffer;
-    char *line_end;
-    //char *rem;
+    static char *rem;
     int bytes_read;
+    int i;
+    int j;
 
+    rem = NULL;
     buffer = (char *)malloc(sizeof(char) * BUFF_SIZE);
-    if ((bytes_read = read(fd, buffer, BUFF_SIZE)))
+    /* read BUFF_SIZE from file into buffer */
+    while ((bytes_read = read(fd, buffer, BUFF_SIZE)))
     {
-        line_end = gnl_strchr(buffer, '\n');
-        if (!(line_len(line_end, '\n')))
-            line_end -= 1;
-        printf("line_end: %s\n", line_end);
-        *line = gnl_strdup(line_end);
-        printf("line: %s\n", *line);
-        
-    }
-    return (1);
-}
-
-
-
-
-
-/*
-    char        *str;
-    char        *buffer;
-    static char *p;
-    int         br;
-
-    str = NULL;
-    buffer = (char *)malloc(sizeof(char) * BUFF_SIZE);
-    if (buffer)
-    {
-        while ((br = read(fd, buffer, BUFF_SIZE)))
-        {
-            p = ft_strchr(buffer, 10);
+        /* search for '\n' in buffer */
+        i = 0;
+        while ((buffer[i] != '\n') && i < BUFF_SIZE)
+            i++;
+        /* storing contents of buffer in line as appropriate */
+        if (buffer[i] == '\n')
+            get_line(line, buffer, rem);
+        else
             *line = ft_strdup(buffer);
+        /* storing any remaining characters for next line */
+        if (i != BUFF_SIZE)
+        {
+            *rem = (char *)malloc(sizeof(char) * (BUFF_SIZE - i));
+            *rem = ft_strsub(buffer, i, (BUFF_SIZE - i));
         }
-printf("br: %d\nBUFF_SIZE: %d\nbuffer: %s\nline: %s\n", br, BUFF_SIZE, buffer, *line);
+        printf("line: %s\n", *line);
     }
-//    while (ft_strchr(p, 10))
-    return (1);
+    return (0);
 }
-
-get_next_line(fd, &str);
-"aaaaaa\naaaa\naaa"
-"aaa"
-
-*/
