@@ -6,102 +6,115 @@
 /*   By: angkim <angkim@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2019/03/30 14:32:52 by angkim            #+#    #+#             */
-/*   Updated: 2019/03/30 14:34:23 by angkim           ###   ########.fr       */
+/*   Updated: 2019/04/03 13:05:00 by angkim           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
 
 /*
-** 
+** This function searches the string pointed to by queue for a '\n'.
+** If found, chr_queue points to the memory location of '\n' and replaces it
+** with '\0'. Then, sets the address of line to queue and sets the address of
+** queue to the memory location right after '\0'.
 */
 
-static int	find_nl(char **stack, char **line)
+static int	find_nl(char **queue, char **line)
 {
-	char *cpy_stack;
-	char *chr_stack;
-	int i;
+	char	*cpy_queue;
+	char	*nl_queue;
+	int		i;
 
-	chr_stack = *stack;
+	nl_queue = *queue;
 	i = 0;
-	while (chr_stack[i] != '\n')
+	while (nl_queue[i] != '\n')
 	{
-		if (!chr_stack[i])
+		if (!nl_queue[i])
 			return (0);
 		i++;
 	}
-	cpy_stack = &chr_stack[i];
-	*cpy_stack = '\0';
-	*line = ft_strdup(*stack);
-	*stack = ft_strdup(cpy_stack + 1);
+	nl_queue[i] = '\0';
+	*line = (char *)malloc(sizeof(char) * i + 1);
+	*line = ft_strcpy(*line, nl_queue);
+	cpy_queue = ft_strdup(&(nl_queue[i + 1]));
+	free(*queue);
+	*queue = ft_strdup(cpy_queue);
+	free(cpy_queue);
 	return (1);
 }
 
 /*
-** 
+** This function takes the fd, addresses to buffer, queue, and line, and reads
+** from fd to buffer. If the bytes read is not equal to BUFF_SIZE, I initialize
+** the memory after the bytes read to '\0'. If there is something in queue
+** I use ft_strjoin to append what was read into buffer to what is already in
+** queue. Then I pass the memory location of queue to my find_nl function
+** which will return a 1 if a newline is found, and 0 otherwise.
 */
 
-static int	read_file(int fd, char *heap, char **stack, char **line)
+static int	read_file(int fd, char *buffer, char **queue, char **line)
 {
-	int bytes_read;
-	char *cpy_stack;
+	int		bytes_read;
+	char	*cpy_queue;
 
-	while ((bytes_read = read(fd, heap, BUFF_SIZE)) > 0)
+	while ((bytes_read = read(fd, buffer, BUFF_SIZE)) > 0)
 	{
 		if (bytes_read != BUFF_SIZE)
-			ft_strclr((heap + bytes_read));
-		if (*stack)
+			ft_strclr((buffer + bytes_read));
+		if (*queue)
 		{
-			if (bytes_read != BUFF_SIZE)
-				ft_strclr(heap + bytes_read);
-			cpy_stack = *stack;
-			*stack = ft_strjoin(cpy_stack, heap);
-			free(cpy_stack);
-			cpy_stack = NULL;
+			cpy_queue = *queue;
+			*queue = ft_strjoin(cpy_queue, buffer);
+			free(cpy_queue);
+			cpy_queue = NULL;
 		}
 		else
-			*stack = ft_strdup(heap);
-		if (find_nl(stack, line))
-			break;
+			*queue = ft_strdup(buffer);
+		if (find_nl(queue, line))
+			break ;
 	}
+	if (bytes_read > 0)
+		return (1);
 	return (bytes_read);
 }
 
 /*
-**
+** First, I check for invalid file descriptors, line, or file contents and
+** return (-1) in any of those cases. If fds and line are valid, I allocate
+** memory for my pointer buffer to BUFF_SIZE + 1 and initialize the memory to
+** NULL. If my static pointer "queue" is already allocated. I pass the
+** addresses of queue and line to my find_nl function. If *queue is not
+** pointing to any valid memory, I begin my read from the fd using my
+** read_file function.
 */
 
-int		get_next_line(int fd, char **line)
+int			get_next_line(int fd, char **line)
 {
-	char 		*heap;
-	static char	*stack[FD_MAX];
+	char		*buffer;
+	static char	*queue[FD_MAX];
 	int			bytes_read;
 
-	
-	if ((fd < 0 || fd >= FD_MAX) || !line || (read(fd, stack[fd], 0) < 0))
+	if ((fd < 0 || fd >= FD_MAX) || !line)
 		return (-1);
-	
-	heap = (char *)malloc(sizeof(char) * BUFF_SIZE + 1);
-	if (!heap)
+	if (!(buffer = (char *)malloc(sizeof(char) * BUFF_SIZE + 1)))
 		return (-1);
-	ft_bzero(heap, BUFF_SIZE + 1);
-	
-	if (*stack)
+	ft_bzero(buffer, BUFF_SIZE + 1);
+	if (queue[fd])
 	{
-		if (find_nl(&stack[fd], line) == 1)
+		if (find_nl(&queue[fd], line) == 1)
+		{
 			return (1);
+		}
 	}
-	
-	bytes_read = read_file(fd, heap, &stack[fd], line);
-	free(heap);
-	
-	if (bytes_read != 0 || stack[fd] == NULL || stack[fd][0] == '\0')
+	bytes_read = read_file(fd, buffer, &queue[fd], line);
+	free(buffer);
+	if (bytes_read != 0 || queue[fd] == NULL || queue[fd][0] == '\0')
 	{
 		if (!bytes_read && *line)
 			*line = NULL;
 		return (bytes_read);
-
-	*line = stack[fd];
-	stack[fd] = NULL;
+	}
+	*line = queue[fd];
+	free(queue[fd]);
 	return (1);
 }
